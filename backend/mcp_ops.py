@@ -120,10 +120,12 @@ WORKFLOW (call the tools in this order):
        returns. Never guess an id or reuse one from another job - the report
        would land on the wrong application. Finally tell the user which URL
        needs pasting and why.
-3. create_application(profile_id, url, posting_text) - register the job with the
+3. For jobs that are not yet on the queue:
+create_application(profile_id, url, posting_text) - register the job with the
    posting text you gathered. Returns the application_id for every later call.
    Optionally call list_templates first and pass template= to pick a visual
    style (default slate).
+   For jobs already on the queue, save_raw_posting(application_id, fetched) updates the posting text.
 4. save_parsed_posting(application_id, parsed) - your structured analysis of the
    posting (ParsedPosting JSON below). The dashboard shows company/title from this.
 5. Optionally research the company (its site, news, tech stack) and call
@@ -145,7 +147,7 @@ user's dashboard right away, so they can watch the list drain.
 Then loop:
   job = next_pending_job(profile_id)   -> {{"application_id": <id>, "url": "<url>"}} or null
   if null: the queue is empty, you are finished.
-  otherwise: fetch it (step 2 above), then save_parsed_posting, optionally
+  otherwise: fetch it (step 2 above), save_raw_posting, then save_parsed_posting, optionally
   save_research, then save_tailored_resume. Then ask for the next one.
 
 Process one job to completion before starting the next. If you lose
@@ -738,6 +740,31 @@ def _reject_if_pipeline_active(app: Application, application_id: int) -> None:
             "the built-in pipeline - wait for it to finish or create a "
             "separate application for this agent run"
         )
+
+
+def save_raw_posting(engine, application_id: int, posting_text: str, overwrite: bool = False) -> dict:
+    """Validate and store the agent's raw job posting text on the job."""
+    if not posting_text or not posting_text.strip():
+        raise McpOpsError(
+            "posting_text is empty - fetch the posting yourself and pass its full text."
+        )
+    with Session(engine) as session:
+        app, job = _get_app_and_job(session, application_id)
+        _reject_if_pipeline_active(app, application_id)
+        if job.raw_text and not overwrite:  # prevent overwriting a pasted or fetched posting with a new one
+            raise McpOpsError(f"application {application_id} already has posting text, so it "
+                              f"cannot be updated with new raw text. Explicitly tell your agent to overwrite.")
+        app.updated_at = _utcnow()  # a live agent run, not an abandoned row
+        job.raw_text = posting_text
+        job.fetch_status = "fetched"
+        session.add(job)
+        session.add(app)
+        session.commit()
+        _set_status(session, app, "not_started")  # ready for save_parsed_posting
+        return {
+            "application_id": application_id,
+            "status": app.status,
+        }
 
 
 def save_parsed_posting(engine, application_id: int, parsed: dict) -> dict:

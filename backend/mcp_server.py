@@ -201,6 +201,14 @@ async def report_fetch_blocked(application_id: int, reason: str) -> dict:
 
 
 @mcp.tool()
+async def save_raw_posting(application_id: int, posting_text: str, overwrite: bool = False) -> dict:
+    """Save the raw text of the Job Posting. Use this to update an existing application
+    that was saved without fetching.
+    Only allow overwriting if the user has explicitly requested."""
+    return await _run(mcp_ops.save_raw_posting, _engine, application_id, posting_text, overwrite)
+
+
+@mcp.tool()
 async def save_parsed_posting(application_id: int, parsed: dict) -> dict:
     """Save your structured analysis of the posting as ParsedPosting JSON
     (title, company, company_domain, must_haves, nice_to_haves, keywords,
