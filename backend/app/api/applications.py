@@ -204,6 +204,7 @@ class BatchRequest(BaseModel):
     default_depth: Optional[str] = None
     default_template: Optional[str] = None
     generate: bool = True
+    fetch: bool = False
 
 
 class PasteRequest(BaseModel):
@@ -304,6 +305,12 @@ def create_batch(
         for created in results:
             pipeline.schedule_run(
                 background_tasks, pipeline.process_application, created["id"])
+    if body.fetch:
+        # Scheduled last (see pipeline.schedule_run), through the module
+        # attribute so tests can monkeypatch pipeline.
+        for created in results:
+            pipeline.schedule_run(
+                background_tasks, pipeline.fetch_job_posting, created["id"])
     return results
 
 

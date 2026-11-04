@@ -102,7 +102,47 @@ describe("AddJobsScreen", () => {
         expect.any(Array),
         expect.any(String),
         expect.any(String),
+        false,
         false
+      )
+    );
+  });
+
+  it("switches between fetch-only, save-only and generation labels", async () => {
+    renderScreen();
+    await enterUrls("https://example.com/a");
+    const fetch = screen.getByLabelText(/fetch on save/i);
+    const save = screen.getByLabelText(/save without generating/i);
+
+    expect(fetch).not.toBeChecked();
+    fireEvent.click(fetch);
+    expect(fetch).toBeChecked();
+    expect(save).toBeChecked();
+    expect(screen.getByRole("button", { name: "Save and Fetch" })).toBeEnabled();
+
+    fireEvent.click(fetch);
+    expect(screen.getByRole("button", { name: "Save for later" })).toBeEnabled();
+
+    fireEvent.click(fetch);
+    fireEvent.click(save);
+    expect(fetch).not.toBeChecked();
+    expect(screen.getByRole("button", { name: "Add and generate" })).toBeEnabled();
+  });
+
+  it("sends fetcher:true and generate:false when fetching on save", async () => {
+    renderScreen();
+    await enterUrls("https://example.com/a");
+    fireEvent.click(screen.getByLabelText(/fetch on save/i));
+    fireEvent.click(screen.getByRole("button", { name: "Save and Fetch" }));
+
+    await waitFor(() =>
+      expect(api.createApplications).toHaveBeenCalledWith(
+        1,
+        expect.any(Array),
+        "standard",
+        "slate",
+        false,
+        true
       )
     );
   });
@@ -117,7 +157,8 @@ describe("AddJobsScreen", () => {
         [{ url: "https://example.com/a", depth: "standard", template: "slate" }],
         "standard",
         "slate",
-        true
+        true,
+        false
       )
     );
   });
@@ -236,7 +277,8 @@ describe("AddJobsScreen and the current person", () => {
         [{ url: "https://a.example/j1", depth: "deep", template: "meridian" }],
         "deep",
         "meridian",
-        true
+        true,
+        false
       )
     );
     expect(await screen.findByText("Dashboard stub")).toBeInTheDocument();
@@ -326,7 +368,8 @@ describe("AddJobsScreen and the current person", () => {
         [{ url: "https://a.example/j1", depth: "deep", template: "meridian" }],
         "deep",
         "meridian",
-        true
+        true,
+        false
       )
     );
   });

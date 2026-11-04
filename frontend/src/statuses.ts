@@ -14,7 +14,7 @@ import type { AppStatus } from "./types";
  * generated yet. Both screens must import this constant rather than
  * declaring their own.
  */
-export const TERMINAL_STATUSES: AppStatus[] = ["not_started", "ready", "error", "needs_paste"];
+export const TERMINAL_STATUSES: AppStatus[] = ["not_started", "ready", "error", "needs_paste", "fetched"];
 
 /**
  * Human labels for AppStatus. Status describes ONLY the document pipeline --
@@ -30,6 +30,7 @@ export const STATUS_LABELS: Record<AppStatus, string> = {
   not_started: "Not built",
   queued: "Queued",
   fetching: "Fetching posting",
+  fetched: "Fetched",
   researching: "Researching",
   tailoring: "Writing",
   rendering: "Rendering",

@@ -326,7 +326,7 @@ export default function DashboardScreen() {
                 <td>{a.applied_at ? new Date(a.applied_at).toLocaleDateString() : ""}</td>
                 <td>{new Date(a.last_activity_at).toLocaleDateString()}</td>
                 <td>
-                  {a.status === "not_started" && (
+                  {(a.status === "not_started" || a.status === "fetched") && (
                     <button
                       className="btn btn-small"
                       onClick={() => run(() => generateApplication(a.id))}

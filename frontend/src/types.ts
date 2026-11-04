@@ -8,6 +8,7 @@ export type AppStatus =
   | "not_started"
   | "queued"
   | "fetching"
+  | "fetched"
   | "researching"
   | "tailoring"
   | "rendering"

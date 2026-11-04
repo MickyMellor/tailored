@@ -119,7 +119,8 @@ export function createApplications(
   jobs: JobRequest[],
   defaultDepth?: Depth,
   defaultTemplate?: TemplateName,
-  generate: boolean = true
+  generate: boolean = true,
+  fetch: boolean = true
 ): Promise<ApplicationDetail[]> {
   return request<ApplicationDetail[]>(
     "/applications/batch",
@@ -129,6 +130,7 @@ export function createApplications(
       default_depth: defaultDepth,
       default_template: defaultTemplate,
       generate,
+      fetch,
     })
   );
 }

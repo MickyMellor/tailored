@@ -299,17 +299,14 @@ def _tailor_and_render(session: Session, app: Application, profile: Profile,
     _set_status(session, app, "ready")
 
 
-@_registers_live_run
-def process_application(app_id: int, engine=None,
-                        claude: ClaudeService | None = None) -> None:
-    """Run the full stage machine for one application (synchronous).
+def fetch_job_posting(app_id: int, engine=None) -> None:
+    """Attempt to fetch the application details (synchronous). Do not run the full pipeline.
 
-    queued -> fetching -> researching -> tailoring -> rendering -> ready.
+    queued -> fetching 
     Status is committed at every transition. needs_paste short-circuits;
     any exception lands the application in status="error".
     """
     engine = engine if engine is not None else get_engine()
-    claude = claude if claude is not None else make_claude(get_settings())
     with Session(engine) as session:
         app = session.get(Application, app_id)
         if app is None:
@@ -331,6 +328,33 @@ def process_application(app_id: int, engine=None,
                 job.fetch_status = "fetched"
                 session.add(job)
                 session.commit()
+            
+            _set_status(session, app, "fetched")
+        except Exception as exc:  # noqa: BLE001 - every failure is visible state
+            _mark_error(session, app, str(exc))
+
+
+@_registers_live_run
+def process_application(app_id: int, engine=None,
+                        claude: ClaudeService | None = None) -> None:
+    """Run the full stage machine for one application (synchronous).
+
+    queued -> fetching -> researching -> tailoring -> rendering -> ready.
+    Status is committed at every transition. needs_paste short-circuits;
+    any exception lands the application in status="error".
+    """
+    engine = engine if engine is not None else get_engine()
+    claude = claude if claude is not None else make_claude(get_settings())
+    with Session(engine) as session:
+        app = session.get(Application, app_id)
+        if app is None:
+            return
+        try:
+            job = session.get(Job, app.job_id)
+            if job is None:
+                raise ClaudeError(f"Job {app.job_id} not found")
+            if not job.raw_text:  # skip fetch when text was pasted up front
+                fetch_job_posting(app_id, engine)
             _run_from_research(session, app, job, claude)
         except Exception as exc:  # noqa: BLE001 - every failure is visible state
             _mark_error(session, app, str(exc))

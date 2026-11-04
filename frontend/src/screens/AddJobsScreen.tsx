@@ -25,6 +25,7 @@ export default function AddJobsScreen() {
   const [fakeMode, setFakeMode] = useState(false);
   const [text, setText] = useState("");
   const [generate, setGenerate] = useState(true);
+  const [fetch, setFetch] = useState(false);
   const [overrides, setOverrides] = useState<Record<number, RowOverride>>({});
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -86,7 +87,7 @@ export default function AddJobsScreen() {
       template: overrides[i]?.template ?? defaultTemplate,
     }));
     try {
-      await createApplications(profileId, jobs, defaultDepth, defaultTemplate, generate);
+      await createApplications(profileId, jobs, defaultDepth, defaultTemplate, generate, fetch);
       navigate("/");
     } catch (err) {
       setError(String(err));
@@ -210,9 +211,23 @@ export default function AddJobsScreen() {
             <input
               type="checkbox"
               checked={!generate}
-              onChange={(e) => setGenerate(!e.target.checked)}
+              onChange={(e) => {
+                setGenerate(!e.target.checked);
+                if (!e.target.checked) setFetch(false);
+              }}
             />
             Save without generating (no AI cost)
+          </label>
+          <label className="field-label" style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+            <input
+              type="checkbox"
+              checked={fetch}
+              onChange={(e) => {
+                setFetch(e.target.checked);
+                if (e.target.checked) setGenerate(false);
+              }}
+            />
+            Fetch on Save (no AI cost)
           </label>
           <button
             className="btn btn-primary"
@@ -225,7 +240,9 @@ export default function AddJobsScreen() {
                 ? "Queueing..."
                 : generate
                   ? "Add and generate"
-                  : "Save for later"}
+                  : fetch
+                    ? "Save and Fetch"
+                    : "Save for later"}
           </button>
         </div>
       )}
